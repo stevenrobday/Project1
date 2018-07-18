@@ -1,5 +1,8 @@
 body {
-    background-color: gray;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+
 }
 #logo {
     height: 100px;
@@ -12,4 +15,17 @@ body {
 
 .radio {
     margin-left: 10px;
+}
+
+main {
+    flex: 1 0 auto;
+  }
+
+  ul{
+      padding: 0; margin: 0;
+  }
+
+img{
+    width: 100%;
+    height: auto;
 }
