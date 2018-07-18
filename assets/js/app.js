@@ -2,17 +2,23 @@ M.AutoInit();
 
 $(document).ready(function () {
   $('.collapsible').collapsible();
+  $('.modal').modal();
 });
 
 //console.log(utellyAPI);
 
 var url = "https://utelly-tv-shows-and-movies-availability-v1.p.mashape.com/lookup?";
-var tmdbUrl = "https://api.themoviedb.org/3/search/";
+var tmdbUrlBasic = "https://api.themoviedb.org/3/search/";
+var tmdbUrlPoster = "http://image.tmdb.org/t/p/w185/";
+var tmdbPersonByName = "https://api.themoviedb.org/3/search/person";
+var tmdbPersonByID = "https://api.themoviedb.org/3/person/";
+var omdbUrl = "http://www.omdbapi.com/";
 //country=us&term=breaking+bad
 
 var $basic = $("#basic");
 var $basicSearch = $("#basicSearch");
 var $options = $("#options");
+var $modalContent = $(".modal-content");
 
 $basic.on("submit", function (e) {
   e.preventDefault();
@@ -21,7 +27,7 @@ $basic.on("submit", function (e) {
 
   var val = $basicSearch.val().trim();
   $basicSearch.val("");
-  if (val === ""){
+  if (val === "") {
     return;
   }
 
@@ -31,19 +37,19 @@ if (selected.length > 0) {
     selectedVal = selected.val();
 }*/
 
-//var selected = $(".tvMovieBasic input[type='radio']:checked");
+  //var selected = $(".tvMovieBasic input[type='radio']:checked");
 
-var movie = $("[id='movieRadioBasic']:checked").val();
-var tv = $("[id='tvRadioBasic']:checked").val();
+  var movie = $("[id='movieRadioBasic']:checked").val();
+  var tv = $("[id='tvRadioBasic']:checked").val();
 
-var type;
+  var type;
 
-if(movie === "on"){
-  type = "movie";
-}
-else if(tv === "on"){
-  type = "tv";
-}
+  if (movie === "on") {
+    type = "movie";
+  }
+  else if (tv === "on") {
+    type = "tv";
+  }
 
   var originalVal = val;
 
@@ -58,36 +64,37 @@ else if(tv === "on"){
   })
     //on response
     .then(function (res) {
-      console.log(res.results);
+      //console.log(res.results);
 
       var length = res.results.length;
 
-      if(length === 0){
+      if (length === 0) {
         $options.text("NO RESULTS FOUND FOR " + originalVal);
         return;
       }
 
-      if(length > 3){
+      if (length > 3) {
         length = 3;
       }
 
-      for(var i = 0; i < length; i++){
-        var resultStr = "<div class='row'><div class='col s6'><ul class='collapsible'><li><div class='collapsible-header'>";
+      for (var i = 0; i < length; i++) {
+        var resultStr = "<div class='row'><div class='col s12'><ul class='collapsible'><li><div class='collapsible-header'>";
         var title = res.results[i].name;
-        resultStr += title + "</div><div data-title='" + title + "' class='collapsible-body white'>";
-           
-        res.results[i].locations.forEach(function(el){
+        resultStr += title + "</div><div class='collapsible-body white'><div class='row'><div class='col s4' data-titlePoster='" + title + "'></div><div class='col s8' data-titleInfo='" + title + "'><p>";
+
+        res.results[i].locations.forEach(function (el) {
           var resultUrl = el.url;
           var resultName = el.display_name;
 
-          if(resultName === "Netflix"){
+          if (resultName === "Netflix") {
             resultUrl = resultUrl.replace(/nflx/, "https");
           }
-          resultStr += "<p><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a></p>";
+          resultStr += "<span><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a> </span>";
         });
-        resultsStr = "</li></ul></div></div>";
+        resultsStr = "</p></div></div></div></li></ul></div></div>";
         $options.append(resultStr);
 
+        toOMDB(title);
         toTMDB(type, title);
       }
 
@@ -95,26 +102,107 @@ else if(tv === "on"){
     });
 });
 
-  //https://api.themoviedb.org/3/search/movie?api_key=a012a678bc4826e1cef39e62f3e9f471&query=matrix
-  function toTMDB(type, title) {
-    var searchURL = tmdbUrl + type + "?api_key=" + tmdbAPI + "&query=" + title;
+//https://api.themoviedb.org/3/search/movie?api_key=a012a678bc4826e1cef39e62f3e9f471&query=matrix
+function toTMDB(type, title) {
+  var searchURL = tmdbUrlBasic + type + "?api_key=" + tmdbAPI + "&query=" + title;
 
-    console.log(searchURL);
+  $.ajax({
+    url: searchURL,
+    method: "GET"
+  })
+    //on response
+    .then(function (res) {
+      var $titleInfo = $("div[data-titleInfo='" + title + "']");
 
-    $.ajax({
-      url: searchURL,
-      method: "GET"
-    })
-      //on response
-      .then(function (res) {
-        if(res.results.length === 0){
-          return;
-        }
+      if (res.results.length === 0) {
+        $titleInfo.append("<p>No info returned from TMDB</p>");
+        return;
+      }
 
-        var voteAverage = res.results[0].vote_average;
 
-        $( "div[data-title='" + title + "']" ).append("Voter average: " + voteAverage + "/10");
+      var voteAverage = res.results[0].vote_average;
+      var imgSrc = tmdbUrlPoster + res.results[0].poster_path;
 
-        console.log(title, res.results[0].vote_average);
-      });
-  }
+      $titleInfo.append("<p>Voter average: " + voteAverage + "/10</p>");
+      $titleInfo.append("<p>Plot: " + res.results[0].overview + "</p>");
+      $("div[data-titlePoster='" + title + "']").append("<img src='" + imgSrc + "'>");
+    });
+}
+
+function toOMDB(title) {
+  var searchURL = omdbUrl + "?apikey=" + omdbAPI + "&t=" + title;
+  $.ajax({
+    url: searchURL,
+    method: "GET"
+  })
+    //on response
+    .then(function (res) {
+      var $titleInfo = $("div[data-titleInfo='" + title + "']");
+      var actors = res.Actors;
+      if (actors !== "N/A") {
+        actorsArray = actors.split(", ");
+
+        var actorsStr = "<p>Actors: ";
+
+        actorsArray.forEach(function (el, index, array) {
+          actorsStr += "<span data-person='" + el + "'></span>";
+
+          if (index !== array.length - 1) {
+            actorsStr += ", ";
+          }
+
+          getPersonByName(el);
+        });
+
+        actorsStr += "</p>";
+
+        $titleInfo.append(actorsStr);
+
+      }
+    });
+}
+
+function getPersonByName(person) {
+  var personNameUrl = tmdbPersonByName + "?api_key=" + tmdbAPI + "&query=" + person;
+
+  $.ajax({
+    url: personNameUrl,
+    method: "GET"
+  })
+    //on response
+    .then(function (res) {
+      var length = res.results.length;
+
+      if (length === 0) {
+        return
+      }
+      getPersonByID(person, res.results[0].id);
+    });
+}
+
+function getPersonByID(person, id){
+  var personIDUrl = tmdbPersonByID + id + "?api_key=" + tmdbAPI;
+
+  $.ajax({
+    url: personIDUrl,
+    method: "GET"
+  })
+    //on response
+    .then(function (res) {
+      var src = tmdbUrlPoster + res.profile_path;
+      var bio = res.biography;
+      bio = bio.replace(/"/g, "&#34;");
+      bio = bio.replace(/'/g, "&#39;");
+      console.log(bio);
+
+      $("span[data-person='" + person + "']").append("<a data-src='" + src + "' data-bio='" + bio + "' class='person modal-trigger' href='#modal1'>" + person + "</a>");
+    });
+}
+
+$(document).on("click", ".person", function(){
+  
+  var personSrc = $(this).attr("data-src");
+  var personBio = $(this).attr("data-bio");
+  console.log(personSrc);
+  $modalContent.html("<div class='row'><div class='col s4'><img src='" + personSrc + "'></div><div class='col s8'>" + personBio + "</div></div>");
+});
