@@ -20,14 +20,7 @@ var $advancedSearch = $("#advancedSearch");
 var $options = $("#options");
 var $modalContent = $(".modal-content");
 
-var toTMDB = function (url) {
-  return $.ajax({
-    url: url,
-    method: "GET"
-  });
-};
-
-var toOMDB = function (url) {
+var getData = function (url) {
   return $.ajax({
     url: url,
     method: "GET"
@@ -105,7 +98,7 @@ $basic.on("submit", function (e) {
 
         //console.log(omdbUrl);
 
-        Promise.all([toOMDB(oUrl), toTMDB(tUrl), title]).then(function (data) {
+        Promise.all([getData(oUrl), getData(tUrl), title]).then(function (data) {
           var $titleInfo = $("div[data-titleInfo='" + title + "']");
 
           var tmdbLength = data[1].results.length;
@@ -309,7 +302,7 @@ $advanced.on("submit", function (e) {
       tUrl += "&with_genres=" + selected;
     }
 
-    toTMDB(tUrl).then(function(data){
+    getData(tUrl).then(function(data){
       console.log(data);
     });
   }
