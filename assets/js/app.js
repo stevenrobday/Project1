@@ -47,6 +47,7 @@ $basic.on("submit", function (e) {
   var val = $basicSearch.val().trim();
   $basicSearch.val("");
   if (val === "") {
+    $options.append("Please enter a show or movie!");
     return;
   }
 
