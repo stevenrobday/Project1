@@ -11,7 +11,7 @@ $(document).ready(function () {
 
 var utellyUrl = "https://utelly-tv-shows-and-movies-availability-v1.p.mashape.com/lookup?";
 var tmdbUrlBasic = "https://api.themoviedb.org/3/search/";
-var tmdbUrlPoster = "http://image.tmdb.org/t/p/w185/";
+var tmdbUrlPoster = "https://image.tmdb.org/t/p/w185/";
 var tmdbPersonByName = "https://api.themoviedb.org/3/search/person";
 var tmdbPersonByID = "https://api.themoviedb.org/3/person/";
 var tmdbDiscover = "https://api.themoviedb.org/3/discover/";
