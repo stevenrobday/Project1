@@ -373,7 +373,7 @@ $advanced.on("submit", function (e) {
 
         var posterPath = res.results[i].poster_path;
 
-        if(posterPath !== null){
+        if (posterPath !== null) {
           var imgSrc = tmdbUrlPoster + posterPath;
           resultStr += "<img src='" + imgSrc + "'>"
         }
@@ -447,7 +447,7 @@ $advanced.on("submit", function (e) {
       $('.collapsible').collapsible();
     });
   }
-  else{
+  else {
     var personNameURL = tmdbPersonByName + "?api_key=" + tmdbAPI + "&query=" + searchVal;
 
     $.ajax({
@@ -457,7 +457,7 @@ $advanced.on("submit", function (e) {
       //on response
       .then(function (res) {
         var length = res.results.length;
-  
+
         if (length === 0) {
           $options.append("No results found for " + searchVal);
           return;
@@ -465,10 +465,10 @@ $advanced.on("submit", function (e) {
 
         var creditURL = tmdbPersonByID + res.results[0].id;
 
-        if(mediaType === "tv"){
+        if (mediaType === "tv") {
           creditURL += "/tv_credits";
         }
-        else{
+        else {
           creditURL += "/movie_credits";
         }
 
@@ -480,18 +480,140 @@ $advanced.on("submit", function (e) {
         })
           //on response
           .then(function (response) {
-            console.log(response);
+            //console.log(response);
 
             var creditArray;
 
-            if(memberType === "cast"){
+            if (memberType === "cast") {
               creditArray = response.cast;
             }
-            else{
+            else {
               creditArray = response.crew;
             }
 
-            
+            if (creditArray.length > 0) {
+              creditArray.sort(function (a, b) {
+                return parseFloat(b.vote_average) - parseFloat(a.vote_average);
+              });
+            }
+
+            //console.log(creditArray);
+
+            var creditLength;
+
+            if (selected !== "0") {
+              var tmpArray = [];
+              creditLength = creditArray.length;
+              for (var i = 0; i < creditLength; i++) {
+                for (var j = 0; j < creditArray[i].genre_ids.length; j++) {
+                  if (parseInt(selected) === creditArray[i].genre_ids[j]) {
+                    tmpArray.push(creditArray[i]);
+                    break;
+                  }
+                }
+
+                if (tmpArray.length === 3) {
+                  creditArray = tmpArray.slice();
+                  break;
+                }
+
+                if (i === creditLength - 1) {
+                  creditArray = tmpArray.slice();
+                }
+              }
+            }
+
+            creditLength = creditArray.length;
+
+            if (creditLength > 3) {
+              creditLength = 3;
+            }
+
+            for (var i = 0; i < creditLength; i++) {
+              var resultStr = "<div class='row'><div class='col s12'><ul class='collapsible'><li><div class='collapsible-header'>";
+              let title;
+              if (mediaType === "tv") {
+                title = creditArray[i].name;
+              }
+              else {
+                title = creditArray[i].title;
+              }
+
+              resultStr += title + "</div><div class='collapsible-body white'><div class='row'><div class='col s4'>";
+
+              var posterPath = creditArray[i].poster_path;
+
+              if (posterPath !== null) {
+                var imgSrc = tmdbUrlPoster + posterPath;
+                resultStr += "<img src='" + imgSrc + "'>"
+              }
+              resultStr += "</div><div class='col s8' data-titleInfo='" + title + "'><div data-utellyInfo='" + title + "'></div>";
+
+              var genreArray = creditArray[i].genre_ids;
+
+              if (genreArray.length !== 0) {
+                resultStr += "<p>Genre: ";
+
+                var genreArrayNames = [];
+
+                genreArray.forEach(function (el) {
+                  getGenreName(genreArrayNames, el);
+                });
+
+                resultStr += genreArrayNames.join(', ') + "</p>";
+              }
+
+              var voteAverage = creditArray[i].vote_average;
+
+              resultStr += "<p>Voter average: " + voteAverage + "/10</p>";
+
+              resultStr += "<div data-Director='" + title + "'></div><div data-Writer='" + title + "'></div><div data-Actors='" + title + "'></div>";
+
+              resultStr += "<p>Plot: " + creditArray[i].overview + "</p>";
+
+              resultStr += "</div></div></div></li></ul></div></div>";
+
+              $options.append(resultStr);
+
+              var utellyTitle = plusIt(title);
+
+              var searchURL = utellyUrl + "country=us&term=" + utellyTitle;
+
+              getUtellyData(searchURL)
+                //on response
+                .then(function (data) {
+                  var utellyResults = "";
+
+                  if (data.results.length > 0) {
+                    data.results[0].locations.forEach(function (el) {
+                      var resultUrl = el.url;
+                      var resultName = el.display_name;
+
+                      if (resultName === "Netflix") {
+                        resultUrl = resultUrl.replace(/nflx/, "https");
+                      }
+                      utellyResults += "<span><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a> </span>";
+                    });
+
+                    $("div[data-utellyInfo='" + title + "']").append(utellyResults);
+                  }
+                });
+
+              var oUrl = omdbUrl + "?apikey=" + omdbAPI + "&t=" + title;
+
+              getData(oUrl)
+                //on response
+                .then(function (data) {
+                  var $director = $("div[data-Director='" + title + "']");
+                  var $writer = $("div[data-Writer='" + title + "']");
+                  var $actors = $("div[data-Actors='" + title + "']");
+
+                  getMembers(data, "Director", $director);
+                  getMembers(data, "Writer", $writer);
+                  getMembers(data, "Actors", $actors);
+                });
+            }
+            $('.collapsible').collapsible();
           });
       });
   }
