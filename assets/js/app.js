@@ -27,6 +27,14 @@ var getData = function (url) {
   });
 };
 
+var getUtellyData = function (url) {
+  return $.ajax({
+    url: url,
+    headers: { "X-Mashape-Key": utellyAPI },
+    method: "GET"
+  });
+}
+
 $basic.on("submit", function (e) {
   e.preventDefault();
 
@@ -52,15 +60,11 @@ $basic.on("submit", function (e) {
 
   var originalVal = val;
 
-  val = val.replace(/ /g, "+");
+  val = plusIt(val);
 
   var searchURL = utellyUrl + "country=us&term=" + val;
 
-  $.ajax({
-    url: searchURL,
-    headers: { "X-Mashape-Key": utellyAPI },
-    method: "GET"
-  })
+  getUtellyData(searchURL)
     //on response
     .then(function (res) {
       //console.log(res.results);
@@ -90,7 +94,7 @@ $basic.on("submit", function (e) {
           }
           resultStr += "<span><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a> </span>";
         });
-        resultsStr = "</p></div></div></div></li></ul></div></div>";
+        resultStr += "</p></div></div></div></li></ul></div></div>";
         $options.append(resultStr);
 
         var oUrl = omdbUrl + "?apikey=" + omdbAPI + "&t=" + title;
@@ -127,9 +131,15 @@ $basic.on("submit", function (e) {
               $titleInfo.append(genreStr);
             }
             var voteAverage = data[1].results[0].vote_average;
-            var imgSrc = tmdbUrlPoster + data[1].results[0].poster_path;
-            $("div[data-titlePoster='" + title + "']").append("<img src='" + imgSrc + "'>");
+
             $titleInfo.append("<p>Voter average: " + voteAverage + "/10</p>");
+
+            var posterPath = data[1].results[0].poster_path;
+
+            if (posterPath !== null) {
+              var imgSrc = tmdbUrlPoster + posterPath;
+              $("div[data-titlePoster='" + title + "']").append("<img src='" + imgSrc + "'>");
+            }
           }
 
           getMembers(data[0], "Director", $titleInfo);
@@ -158,7 +168,7 @@ function getPersonByName(person) {
       var length = res.results.length;
 
       if (length === 0) {
-        return
+        return;
       }
       getPersonByID(person, res.results[0].id);
     });
@@ -186,6 +196,12 @@ function getGenreName(array, id) {
   var el;
 
   switch (id) {
+    case 28:
+      el = "Action";
+      break;
+    case 12:
+      el = "Adventure";
+      break;
     case 10759:
       el = "Action & Adventure";
       break;
@@ -207,8 +223,20 @@ function getGenreName(array, id) {
     case 10751:
       el = "Family";
       break;
+    case 14:
+      el = "Fantasy";
+      break;
+    case 36:
+      el = "History";
+      break;
+    case 27:
+      el = "Horror";
+      break;
     case 10762:
       el = "Kids";
+      break;
+    case 10402:
+      el = "Music";
       break;
     case 9648:
       el = "Mystery";
@@ -219,14 +247,29 @@ function getGenreName(array, id) {
     case 10764:
       el = "Reality";
       break;
+    case 10749:
+      el = "Romance";
+      break;
     case 10765:
       el = "Sci-Fi & Fantasy";
+      break;
+    case 878:
+      el = "Science Fiction";
       break;
     case 10766:
       el = "Soap";
       break;
     case 10767:
       el = "Talk";
+      break;
+    case 10770:
+      el = "TV Movie";
+      break;
+    case 53:
+      el = "Thriller";
+      break;
+    case 10752:
+      el = "War";
       break;
     case 10768:
       el = "War & Politics";
@@ -242,8 +285,8 @@ function getGenreName(array, id) {
 function getMembers(data, memberCat, $titleInfo) {
   var members = data[memberCat];
 
-  if (members !== "N/A") {
-    membersArray = members.split(", ");
+  if (members && members !== "N/A") {
+    var membersArray = members.split(", ");
 
     var membersStr = "<p>" + memberCat + ": ";
 
@@ -265,6 +308,8 @@ function getMembers(data, memberCat, $titleInfo) {
 
 $advanced.on("submit", function (e) {
   e.preventDefault();
+
+  $options.empty();
 
   var searchVal = $advancedSearch.val().trim();
   $advanced.val("");
@@ -295,18 +340,288 @@ $advanced.on("submit", function (e) {
 
   var selected = $("#genreSelect option:selected").val();
 
-  if(searchVal === ""){
+  if (searchVal === "") {
     var tUrl = tmdbDiscover + mediaType + "?api_key=" + tmdbAPI + "&sort_by=vote_average.desc";
-    
-    if(selected !== "0"){
+
+
+
+    if (selected !== "0") {
+      if (mediaType === "movie" && selected === "10759") {
+        selected = 28;
+      }
       tUrl += "&with_genres=" + selected;
     }
 
-    getData(tUrl).then(function(data){
-      console.log(data);
+    getData(tUrl).then(function (res) {
+      var length = res.results.length;
+
+      if (length > 3) {
+        length = 3;
+      }
+
+      for (var i = 0; i < length; i++) {
+        var resultStr = "<div class='row'><div class='col s12'><ul class='collapsible'><li><div class='collapsible-header'>";
+        let title;
+        if (mediaType === "tv") {
+          title = res.results[i].name;
+        }
+        else {
+          title = res.results[i].title;
+        }
+
+        resultStr += title + "</div><div class='collapsible-body white'><div class='row'><div class='col s4'>";
+
+        var posterPath = res.results[i].poster_path;
+
+        if (posterPath !== null) {
+          var imgSrc = tmdbUrlPoster + posterPath;
+          resultStr += "<img src='" + imgSrc + "'>"
+        }
+        resultStr += "</div><div class='col s8' data-titleInfo='" + title + "'><div data-utellyInfo='" + title + "'></div>";
+
+        var genreArray = res.results[i].genre_ids;
+
+        if (genreArray.length !== 0) {
+          resultStr += "<p>Genre: ";
+
+          var genreArrayNames = [];
+
+          genreArray.forEach(function (el) {
+            getGenreName(genreArrayNames, el);
+          });
+
+          resultStr += genreArrayNames.join(', ') + "</p>";
+        }
+
+        var voteAverage = res.results[i].vote_average;
+
+        resultStr += "<p>Voter average: " + voteAverage + "/10</p>";
+
+        resultStr += "<div data-Director='" + title + "'></div><div data-Writer='" + title + "'></div><div data-Actors='" + title + "'></div>";
+
+        resultStr += "<p>Plot: " + res.results[i].overview + "</p>";
+
+        resultStr += "</div></div></div></li></ul></div></div>";
+
+        $options.append(resultStr);
+
+        var utellyTitle = plusIt(title);
+
+        var searchURL = utellyUrl + "country=us&term=" + utellyTitle;
+
+        getUtellyData(searchURL)
+          //on response
+          .then(function (data) {
+            var utellyResults = "";
+
+            if (data.results.length > 0) {
+              data.results[0].locations.forEach(function (el) {
+                var resultUrl = el.url;
+                var resultName = el.display_name;
+
+                if (resultName === "Netflix") {
+                  resultUrl = resultUrl.replace(/nflx/, "https");
+                }
+                utellyResults += "<span><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a> </span>";
+              });
+
+              $("div[data-utellyInfo='" + title + "']").append(utellyResults);
+            }
+          });
+
+        var oUrl = omdbUrl + "?apikey=" + omdbAPI + "&t=" + title;
+
+        getData(oUrl)
+          //on response
+          .then(function (data) {
+            var $director = $("div[data-Director='" + title + "']");
+            var $writer = $("div[data-Writer='" + title + "']");
+            var $actors = $("div[data-Actors='" + title + "']");
+
+            getMembers(data, "Director", $director);
+            getMembers(data, "Writer", $writer);
+            getMembers(data, "Actors", $actors);
+          });
+      }
+      //Promise.all([getData(oUrl), getData], )
+      $('.collapsible').collapsible();
     });
   }
+  else {
+    var personNameURL = tmdbPersonByName + "?api_key=" + tmdbAPI + "&query=" + searchVal;
+
+    $.ajax({
+      url: personNameURL,
+      method: "GET"
+    })
+      //on response
+      .then(function (res) {
+        var length = res.results.length;
+
+        if (length === 0) {
+          $options.append("No results found for " + searchVal);
+          return;
+        }
+
+        var creditURL = tmdbPersonByID + res.results[0].id;
+
+        if (mediaType === "tv") {
+          creditURL += "/tv_credits";
+        }
+        else {
+          creditURL += "/movie_credits";
+        }
+
+        creditURL += "?api_key=" + tmdbAPI;
+        //console.log(creditURL);
+        $.ajax({
+          url: creditURL,
+          method: "GET"
+        })
+          //on response
+          .then(function (response) {
+            //console.log(response);
+
+            var creditArray;
+
+            if (memberType === "cast") {
+              creditArray = response.cast;
+            }
+            else {
+              creditArray = response.crew;
+            }
+
+            if (creditArray.length > 0) {
+              creditArray.sort(function (a, b) {
+                return parseFloat(b.vote_average) - parseFloat(a.vote_average);
+              });
+            }
+
+            //console.log(creditArray);
+
+            var creditLength;
+
+            if (selected !== "0") {
+              var tmpArray = [];
+              creditLength = creditArray.length;
+              for (var i = 0; i < creditLength; i++) {
+                for (var j = 0; j < creditArray[i].genre_ids.length; j++) {
+                  if (parseInt(selected) === creditArray[i].genre_ids[j]) {
+                    tmpArray.push(creditArray[i]);
+                    break;
+                  }
+                }
+
+                if (tmpArray.length === 3) {
+                  creditArray = tmpArray.slice();
+                  break;
+                }
+
+                if (i === creditLength - 1) {
+                  creditArray = tmpArray.slice();
+                }
+              }
+            }
+
+            creditLength = creditArray.length;
+
+            if (creditLength > 3) {
+              creditLength = 3;
+            }
+
+            for (var i = 0; i < creditLength; i++) {
+              var resultStr = "<div class='row'><div class='col s12'><ul class='collapsible'><li><div class='collapsible-header'>";
+              let title;
+              if (mediaType === "tv") {
+                title = creditArray[i].name;
+              }
+              else {
+                title = creditArray[i].title;
+              }
+
+              resultStr += title + "</div><div class='collapsible-body white'><div class='row'><div class='col s4'>";
+
+              var posterPath = creditArray[i].poster_path;
+
+              if (posterPath !== null) {
+                var imgSrc = tmdbUrlPoster + posterPath;
+                resultStr += "<img src='" + imgSrc + "'>"
+              }
+              resultStr += "</div><div class='col s8' data-titleInfo='" + title + "'><div data-utellyInfo='" + title + "'></div>";
+
+              var genreArray = creditArray[i].genre_ids;
+
+              if (genreArray.length !== 0) {
+                resultStr += "<p>Genre: ";
+
+                var genreArrayNames = [];
+
+                genreArray.forEach(function (el) {
+                  getGenreName(genreArrayNames, el);
+                });
+
+                resultStr += genreArrayNames.join(', ') + "</p>";
+              }
+
+              var voteAverage = creditArray[i].vote_average;
+
+              resultStr += "<p>Voter average: " + voteAverage + "/10</p>";
+
+              resultStr += "<div data-Director='" + title + "'></div><div data-Writer='" + title + "'></div><div data-Actors='" + title + "'></div>";
+
+              resultStr += "<p>Plot: " + creditArray[i].overview + "</p>";
+
+              resultStr += "</div></div></div></li></ul></div></div>";
+
+              $options.append(resultStr);
+
+              var utellyTitle = plusIt(title);
+
+              var searchURL = utellyUrl + "country=us&term=" + utellyTitle;
+
+              getUtellyData(searchURL)
+                //on response
+                .then(function (data) {
+                  var utellyResults = "";
+
+                  if (data.results.length > 0) {
+                    data.results[0].locations.forEach(function (el) {
+                      var resultUrl = el.url;
+                      var resultName = el.display_name;
+
+                      if (resultName === "Netflix") {
+                        resultUrl = resultUrl.replace(/nflx/, "https");
+                      }
+                      utellyResults += "<span><a href='" + resultUrl + "' target='_blank'>" + resultName + "</a> </span>";
+                    });
+
+                    $("div[data-utellyInfo='" + title + "']").append(utellyResults);
+                  }
+                });
+
+              var oUrl = omdbUrl + "?apikey=" + omdbAPI + "&t=" + title;
+
+              getData(oUrl)
+                //on response
+                .then(function (data) {
+                  var $director = $("div[data-Director='" + title + "']");
+                  var $writer = $("div[data-Writer='" + title + "']");
+                  var $actors = $("div[data-Actors='" + title + "']");
+
+                  getMembers(data, "Director", $director);
+                  getMembers(data, "Writer", $writer);
+                  getMembers(data, "Actors", $actors);
+                });
+            }
+            $('.collapsible').collapsible();
+          });
+      });
+  }
 });
+
+function plusIt(val) {
+  return val.replace(/ /g, "+");
+}
 
 $(document).on("click", ".person", function () {
   var personSrc = $(this).attr("data-src");
