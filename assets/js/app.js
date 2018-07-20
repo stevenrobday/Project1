@@ -506,6 +506,9 @@ $advanced.on("submit", function (e) {
             var creditLength;
 
             if (selected !== "0") {
+              if (mediaType === "movie" && selected === "10759") {
+                selected = 28;
+              }
               var tmpArray = [];
               creditLength = creditArray.length;
               for (var i = 0; i < creditLength; i++) {
