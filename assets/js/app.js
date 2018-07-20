@@ -15,7 +15,7 @@ var tmdbUrlPoster = "http://image.tmdb.org/t/p/w185/";
 var tmdbPersonByName = "https://api.themoviedb.org/3/search/person";
 var tmdbPersonByID = "https://api.themoviedb.org/3/person/";
 var tmdbDiscover = "https://api.themoviedb.org/3/discover/";
-var omdbUrl = "http://www.omdbapi.com/";
+var omdbUrl = "https://www.omdbapi.com/";
 
 var $basic = $("#basic");
 var $basicSearch = $("#basicSearch");
